@@ -73,7 +73,7 @@ namespace HuffmanCoding
 
             string encodedText = "";
             // to convert all file content to encoded form
-            for (int i = 0; i < fileContent.Length; i++) 
+            for (int i = 0; i < fileContent.Length; i++)  
                 encodedText += dic[fileContent[i]];
 
             int codeSize = encodedText.Length; 
