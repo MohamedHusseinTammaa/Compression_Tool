@@ -20,7 +20,7 @@ namespace HuffmanCoding
             
             // to create the encoded file path 
             string directoryPath = Path.GetDirectoryName(filePath);
-            string newFileName = "Encoded"+Path.GetFileName(filePath);
+            string newFileName = "Encoded_"+Path.GetFileName(filePath);
             string encodedFilePath = Path.Combine(directoryPath,newFileName); 
             
             FileStream fsc = new FileStream(encodedFilePath, FileMode.Create, FileAccess.ReadWrite);
@@ -32,7 +32,8 @@ namespace HuffmanCoding
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
-                frequencyDict[c]++;
+                if (!frequencyDict.ContainsKey(c)) frequencyDict.Add(c,1);
+                else frequencyDict[c]++;
 
             }
 
@@ -57,7 +58,7 @@ namespace HuffmanCoding
                 minheap.Add(top);
             }
             Dictionary<char, string> dic = new Dictionary<char, string>();
-            addCodeToDic(minheap[0], "", dic);
+            addCodeToDic(minheap.Min(), "", dic);
             printCodeTable(dic, fsc);
             writeAsBinary(text, dic, fsc);
             FileInfo f1 = new FileInfo(encodedFilePath);
@@ -129,9 +130,8 @@ namespace HuffmanCoding
 
                 bw.Write(sizeOfCode);
                 bw.Write((byte)c);
-
-                byte[] byteArray = Encoding.UTF8.GetBytes(dic[c]);
-                bw.Write(byteArray);
+                bw.Write(Encoding.UTF8.GetBytes(dic[c]));
+                
             }
 
             bw.Flush(); // to clear any buffered data 
@@ -141,7 +141,9 @@ namespace HuffmanCoding
         static void addCodeToDic(Node root, string s, Dictionary<char, string> dic)
         {
             if (root == null) return;
-            if (root.chr != '\0') dic.Add(root.chr, s);
+            
+            if (!dic.ContainsKey(root.chr))dic.Add(root.chr, s); 
+
             addCodeToDic(root.left, s + '0', dic);
             addCodeToDic(root.right, s + '1', dic);
         }
