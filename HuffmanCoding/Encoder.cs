@@ -1,113 +1,113 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace HuffmanCoding
 {
     internal class Encoder
     {
-        public static void encode(string filePath )
+        public static void Encode(string filePath)
         {
             var fi1 = new FileInfo(filePath);
-            long oraginalSize = fi1.Length; // to get the size of the file
+            long originalSize = fi1.Length; // Get the size of the file
 
-            FileStream fso = new FileStream(filePath,FileMode.Open);
-            StreamReader sr = new StreamReader(fso);
-            string text = sr.ReadToEnd(); // to read all content of the file
-            sr.Close();
-            
-            // to create the encoded file path 
+            string text;
+            using (FileStream fso = new FileStream(filePath, FileMode.Open))
+            using (StreamReader sr = new StreamReader(fso))
+            {
+                text = sr.ReadToEnd(); // Read all content of the file
+            }
+
+            // Create the encoded file path
             string directoryPath = Path.GetDirectoryName(filePath);
-            string newFileName = "Encoded_"+Path.GetFileName(filePath);
-            string encodedFilePath = Path.Combine(directoryPath,newFileName); 
-            
-            FileStream fsc = new FileStream(encodedFilePath, FileMode.Create, FileAccess.ReadWrite);
-            
-            // Create a min heap using list
-            var minheap = new List<Node>();
-            // Frequency dictionary to store the frequency of each character
-            var frequencyDict = new Dictionary<char, int>();
-            for (int i = 0; i < text.Length; i++)
-            {
-                char c = text[i];
-                if (!frequencyDict.ContainsKey(c)) frequencyDict.Add(c,1);
-                else frequencyDict[c]++;
+            string newFileName = "Encoded_" + Path.GetFileName(filePath);
+            string encodedFilePath = Path.Combine(directoryPath, newFileName);
 
-            }
-
-            // Adding nodes to the minheap
-            foreach (var i in frequencyDict)
+            using (FileStream fsc = new FileStream(encodedFilePath, FileMode.Create, FileAccess.ReadWrite))
             {
-                minheap.Add(new Node(i.Key, i.Value));
-            }
+                // Create a min heap using list
+                var minHeap = new List<Node>();
+                var frequencyDict = new Dictionary<char, int>();
 
-            // Create the Huffman Tree
-            while (minheap.Count > 1)
-            {
-                minheap.Sort((x, y) => x.frq.CompareTo(y.frq));
-                Node minNode1 = minheap[0];
-                Node minNode2 = minheap[1];
-                minheap.RemoveRange(0, 2);
-                Node top = new Node('\0', minNode1.frq + minNode2.frq)
+                // Build the frequency dictionary
+                foreach (char c in text)
                 {
-                    left = minNode1,
-                    right = minNode2
-                };
-                minheap.Add(top);
+                    if (frequencyDict.ContainsKey(c))
+                    {
+                        frequencyDict[c]++;
+                    }
+                    else
+                    {
+                        frequencyDict[c] = 1;
+                    }
+                }
+
+                // Create nodes and add them to the min heap
+                foreach (var entry in frequencyDict)
+                {
+                    minHeap.Add(new Node(entry.Key, entry.Value));
+                }
+
+                // Build the Huffman Tree
+                while (minHeap.Count > 1)
+                {
+                    minHeap.Sort((x, y) => x.frq.CompareTo(y.frq));
+                    Node minNode1 = minHeap[0];
+                    Node minNode2 = minHeap[1];
+                    minHeap.RemoveRange(0, 2);
+
+                    Node top = new Node('\0', minNode1.frq + minNode2.frq)
+                    {
+                        left = minNode1,
+                        right = minNode2
+                    };
+                    minHeap.Add(top);
+                }
+
+                var dic = new Dictionary<char, string>();
+                AddCodeToDic(minHeap[0], "", dic);
+                PrintCodeTable(dic, fsc);
+                WriteAsBinary(text, dic, fsc);
+
+                FileInfo f1 = new FileInfo(encodedFilePath);
+                long encodedFileSize = f1.Length;
+                Console.WriteLine($"The Ratio of compression: {(originalSize / 1.0 / encodedFileSize / 1.0):F2}");
+                Console.WriteLine("COMPRESSED SUCCESSFULLY =)");
             }
-            Dictionary<char, string> dic = new Dictionary<char, string>();
-            addCodeToDic(minheap.Min(), "", dic);
-            printCodeTable(dic, fsc);
-            writeAsBinary(text, dic, fsc);
-            FileInfo f1 = new FileInfo(encodedFilePath);
-            long encodedFileSize =f1.Length;
-            Console.WriteLine($"The Ratio of comperssion : {(oraginalSize/1.0/encodedFileSize/1.0)}");
-            Console.WriteLine("COMPRESSED SUCCESSFULLY =)");
-
         }
-        static void writeAsBinary(string fileContent, Dictionary<char, string> dic, FileStream fs)
+
+        private static void WriteAsBinary(string fileContent, Dictionary<char, string> dic, FileStream fs)
         {
-            BinaryWriter bw = new BinaryWriter(fs);
-            fs.Seek(0, SeekOrigin.End); // to make sure that the curser at the end of the file
+            using (BinaryWriter bw = new BinaryWriter(fs))
+            {
+                fs.Seek(0, SeekOrigin.End); // Move cursor to the end of the file
 
-            string encodedText = "";
-            // to convert all file content to encoded form
-            for (int i = 0; i < fileContent.Length; i++)  
-                encodedText += dic[fileContent[i]];
+                string encodedText = string.Concat(fileContent.Select(c => dic[c]));
+                int codeSize = encodedText.Length;
 
-            int codeSize = encodedText.Length; 
-            // to convert content bits to an array of bytes
-            byte[] bytes = convertTobytes(encodedText);
-           
-            // to write the padding size
-            bw.Write((byte)(bytes.Length * 8 - codeSize)); 
-            
-            // to write the encoded bytes
-            bw.Write(bytes); 
+                // Convert content bits to an array of bytes
+                byte[] bytes = ConvertToBytes(encodedText);
 
-            bw.Flush(); //  to clear any buffered data in the writer
-            fs.Close();
+                // Write the padding size
+                bw.Write((byte)(bytes.Length * 8 - codeSize));
+
+                // Write the encoded bytes
+                bw.Write(bytes);
+
+                bw.Flush(); // Clear any buffered data
+            }
         }
-        static byte[] convertTobytes(string bits)
+
+        private static byte[] ConvertToBytes(string bits)
         {
-            // Calculate the number of bytes needed to store the bit string.
-            // The length of the bit string is divided by 8 because each byte contains 8 bits.
-            // We add 7 before dividing to account for any remaining bits that would require an extra byte.
             int numberOfBytes = (bits.Length + 7) / 8;
-
-            // Create an array of bytes to store the final encoded data.
             byte[] bytes = new byte[numberOfBytes];
 
-            // Loop through each bit in the string.
             for (int i = 0; i < bits.Length; i++)
             {
-                // If the current bit is '1', set the corresponding bit in the byte array.
-                // We determine which byte (index i / 8) and which bit within that byte (position 7 - (i % 8)) to set.
                 if (bits[i] == '1')
                 {
-                    // use bitwise OR to shift the bit to the right posistion.
                     bytes[i / 8] |= (byte)(1 << (7 - i % 8));
                 }
             }
@@ -115,38 +115,38 @@ namespace HuffmanCoding
             return bytes;
         }
 
-        static void printCodeTable(Dictionary<char, string> dic, FileStream fs)
+        private static void PrintCodeTable(Dictionary<char, string> dic, FileStream fs)
         {
-            BinaryWriter bw = new BinaryWriter(fs ,Encoding.UTF8);
-
-            int charTableSize = dic.Count();
-            bw.Write(charTableSize); // to write the value if char table size
-
-            // loop to each char and its code in the table to write it into the file
-            foreach (char c in dic.Keys)
+            using (BinaryWriter bw = new BinaryWriter(fs, Encoding.UTF8))
             {
-                int sizeOfCode = dic[c].Length;
-               
-                // write the char in form of ([size of huffman code][char][code as bytes])
-                bw.Write(sizeOfCode);
-                bw.Write(c);
-                bw.Write(Encoding.UTF8.GetBytes(dic[c]));
-      
-            }
+                int charTableSize = dic.Count;
+                bw.Write(charTableSize); // Write the size of the Huffman table
 
-            bw.Flush(); // to clear any buffered data 
-            fs.Flush();
+                // Write each char and its code to the file
+                foreach (var kvp in dic)
+                {
+                    string code = kvp.Value;
+                    bw.Write(code.Length);
+                    bw.Write(kvp.Key);
+                    bw.Write(Encoding.UTF8.GetBytes(code));
+                }
+
+                bw.Flush(); // Clear any buffered data
+                fs.Flush();
+            }
         }
 
-        static void addCodeToDic(Node root, string s, Dictionary<char, string> dic)
+        private static void AddCodeToDic(Node root, string s, Dictionary<char, string> dic)
         {
             if (root == null) return;
-            
-            if (!dic.ContainsKey(root.chr))dic.Add(root.chr, s); 
 
-            addCodeToDic(root.left, s + '0', dic);
-            addCodeToDic(root.right, s + '1', dic);
+            if (!dic.ContainsKey(root.chr))
+            {
+                dic.Add(root.chr, s);
+            }
+
+            AddCodeToDic(root.left, s + '0', dic);
+            AddCodeToDic(root.right, s + '1', dic);
         }
-
     }
 }
