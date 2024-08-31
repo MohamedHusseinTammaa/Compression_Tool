@@ -1,69 +1,69 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace HuffmanCoding
 {
     internal class Decoder
     {
-        public static void Decode(string filePath)
+        public static void decode(string filePath)
         {
-            using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-            {
-                string directoryPath = Path.GetDirectoryName(filePath);
-                string newFileName = "Decoded_" + Path.GetFileName(filePath);
-                string decodedFilePath = Path.Combine(directoryPath, newFileName);
+            FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            
+            string directoryPath = Path.GetDirectoryName(filePath);
+            string newFileName = "Decoded_" + Path.GetFileName(filePath);
+            string encodedFilePath = Path.Combine(directoryPath, newFileName);
+           
+            FileStream fse = new FileStream(encodedFilePath, FileMode.Create, FileAccess.Write);
+           
+            var dic = new Dictionary<string, char>();
+            string content;
+            readFile(fs, dic, out content);
+            byte [] decodedContent= Encoding.UTF8.GetBytes( writeCodeAsChar(content, dic));
+            BinaryWriter bw = new BinaryWriter(fse);
+            bw.Write(decodedContent);
+            Console.WriteLine("The file id Docoded :)");
+            bw.Flush();
+            fs.Close();
+            fse.Close();
 
-                using (FileStream fse = new FileStream(decodedFilePath, FileMode.Create, FileAccess.Write))
-                {
-                    var dic = new Dictionary<string, char>();
-                    string content;
-
-                    ReadFile(fs, dic, out content);
-                    byte[] decodedContent = Encoding.UTF8.GetBytes(WriteCodeAsChar(content, dic));
-
-                    using (BinaryWriter bw = new BinaryWriter(fse))
-                    {
-                        bw.Write(decodedContent);
-                    }
-                }
-            }
         }
-
-        private static void ReadFile(FileStream fs, Dictionary<string, char> dic, out string content)
+        static void readFile(FileStream fs, Dictionary<string, char> dic, out string content)
         {
-            using (BinaryReader br = new BinaryReader(fs))
+            fs.Seek(0, SeekOrigin.Begin);
+            BinaryReader br = new BinaryReader(fs);
+
+            int charTableSize = br.ReadInt32(); // Read the size of the Huffman table
+
+            // Read each character and its corresponding Huffman code from the file
+            for (int i = 0; i < charTableSize; i++)
             {
-                int charTableSize = br.ReadInt32(); // Read the size of the Huffman table
+                int sizeOfCode = br.ReadInt32();
+                char c = br.ReadChar();
+                byte[] codeBytes = br.ReadBytes(sizeOfCode);
+                string code = Encoding.UTF8.GetString(codeBytes);
 
-                // Read each character and its corresponding Huffman code from the file
-                for (int i = 0; i < charTableSize; i++)
-                {
-                    int sizeOfCode = br.ReadInt32();
-                    char c = br.ReadChar();
-                    byte[] codeBytes = br.ReadBytes(sizeOfCode);
-                    string code = Encoding.UTF8.GetString(codeBytes);
-
-                    dic.Add(code, c); // Add the code and character to the dictionary 
-                }
-
-                int padding = br.ReadByte(); // Read the padding size
-
-                // Read the rest of the file as the encoded binary data
-                List<byte> bytes = new List<byte>();
-                while (br.BaseStream.Position < br.BaseStream.Length)
-                {
-                    bytes.Add(br.ReadByte());
-                }
-
-                // Convert the byte array to a binary string
-                content = BytesToBinaryString(bytes);
-                content = content.Substring(0, content.Length - padding); // Remove the padding bits
+                dic.Add(code, c); // Add the code and character to the dictionary 
             }
-        }
 
-        private static string BytesToBinaryString(List<byte> byteArray)
+            int padding = br.ReadByte(); // Read the padding size
+
+            // Read the rest of the file as the encoded binary data
+            List<byte> bytes = new List<byte>();
+            while (br.BaseStream.Position < br.BaseStream.Length)
+            {
+                bytes.Add(br.ReadByte());
+            }
+
+            // Convert the byte array to a binary string
+            content = BytesToBinaryString(bytes);
+            content = content.Substring(0, content.Length - padding); // Remove the padding bits
+
+            br.Close();
+        }
+        public static string BytesToBinaryString(List<byte> byteArray)
         {
             StringBuilder binaryString = new StringBuilder();
 
@@ -76,9 +76,10 @@ namespace HuffmanCoding
             return binaryString.ToString();
         }
 
-        private static string WriteCodeAsChar(string content, Dictionary<string, char> dic)
+        static string writeCodeAsChar(string content, Dictionary<string, char> dic)
         {
             StringBuilder decodedContent = new StringBuilder();
+
             int start = 0;
 
             // Iterate through the binary string to decode each Huffman code
