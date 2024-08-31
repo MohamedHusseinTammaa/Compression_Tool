@@ -16,8 +16,7 @@ namespace HuffmanCoding
     {
         static void Main(string[] args)
         {
-            try
-            {
+            
                 Console.Write("ENTER THE PATH OF THE FILE THAT YOU WANT TO WORK ON : ");
                 string filePath = Console.ReadLine(); // E:\\Git projects\\huffman\\file.txt
 
@@ -30,12 +29,8 @@ namespace HuffmanCoding
                 
                 else if (c.ToLower() == "d")
                     Decoder.decode(filePath);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            
+           
+      
            
             
         }

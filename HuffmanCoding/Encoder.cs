@@ -117,7 +117,7 @@ namespace HuffmanCoding
 
         static void printCodeTable(Dictionary<char, string> dic, FileStream fs)
         {
-            BinaryWriter bw = new BinaryWriter(fs);
+            BinaryWriter bw = new BinaryWriter(fs ,Encoding.UTF8);
 
             int charTableSize = dic.Count();
             bw.Write(charTableSize); // to write the value if char table size
@@ -126,12 +126,12 @@ namespace HuffmanCoding
             foreach (char c in dic.Keys)
             {
                 int sizeOfCode = dic[c].Length;
+               
                 // write the char in form of ([size of huffman code][char][code as bytes])
-
                 bw.Write(sizeOfCode);
                 bw.Write(c);
                 bw.Write(Encoding.UTF8.GetBytes(dic[c]));
-                
+      
             }
 
             bw.Flush(); // to clear any buffered data 
