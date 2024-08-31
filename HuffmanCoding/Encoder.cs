@@ -119,17 +119,17 @@ namespace HuffmanCoding
         {
             BinaryWriter bw = new BinaryWriter(fs);
 
-            byte charTableSize = (byte)dic.Count();
+            int charTableSize = dic.Count();
             bw.Write(charTableSize); // to write the value if char table size
 
             // loop to each char and its code in the table to write it into the file
             foreach (char c in dic.Keys)
             {
-                byte sizeOfCode = (byte)dic[c].Length;
+                int sizeOfCode = dic[c].Length;
                 // write the char in form of ([size of huffman code][char][code as bytes])
 
                 bw.Write(sizeOfCode);
-                bw.Write((byte)c);
+                bw.Write(c);
                 bw.Write(Encoding.UTF8.GetBytes(dic[c]));
                 
             }
