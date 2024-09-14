@@ -2,7 +2,7 @@
 # Huffman Coding Compression Tool
 
 
-This project is a Huffman coding compression tool written in C#. It includes both encoding and decoding functionalities for compressing and decompressing text files using Huffman coding algorithms.
+c# program that compresse files size using huffman algorithm.
 
 ## What I’ve Learned
 
